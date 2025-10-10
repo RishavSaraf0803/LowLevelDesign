@@ -1,0 +1,220 @@
+# Serverless Framework Configuration for User Analytics Lambda
+#
+# This configuration demonstrates infrastructure as code best practices
+# for deploying Lambda functions with proper monitoring, security, and scaling
+
+service: user-analytics-lambda
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: python3.11
+  region: ${opt:region, 'us-east-1'}
+  stage: ${opt:stage, 'dev'}
+  memorySize: 1024
+  timeout: 300  # 5 minutes
+  reservedConcurrency: 10  # Limit concurrent executions
+  
+  # Environment Variables
+  environment:
+    ANALYTICS_BUCKET: ${self:custom.analyticssBucket}
+    RESULTS_TABLE: ${self:custom.resultsTable}
+    SNS_TOPIC_ARN: ${self:custom.snsTopicArn}
+    LOG_LEVEL: ${opt:log-level, 'INFO'}
+    
+  # IAM Role Permissions
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - s3:GetObject
+        - s3:PutObject
+      Resource: 
+        - "arn:aws:s3:::${self:custom.analyticssBucket}/*"
+    
+    - Effect: Allow
+      Action:
+        - dynamodb:PutItem
+        - dynamodb:GetItem
+        - dynamodb:UpdateItem
+        - dynamodb:Query
+      Resource: 
+        - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.resultsTable}"
+    
+    - Effect: Allow
+      Action:
+        - sns:Publish
+      Resource: 
+        - "${self:custom.snsTopicArn}"
+    
+    - Effect: Allow
+      Action:
+        - logs:CreateLogGroup
+        - logs:CreateLogStream
+        - logs:PutLogEvents
+      Resource: "*"
+  
+  # Tracing and Monitoring
+  tracing:
+    lambda: true
+    apiGateway: true
+    
+  # VPC Configuration (if needed for database access)
+  # vpc:
+  #   securityGroupIds:
+  #     - sg-xxxxxxxxx
+  #   subnetIds:
+  #     - subnet-xxxxxxxxx
+  #     - subnet-yyyyyyyyy
+
+functions:
+  userAnalytics:
+    handler: lambda_function.lambda_handler
+    description: "Process user analytics data and generate insights"
+    
+    # Event triggers
+    events:
+      # HTTP API for direct invocation
+      - httpApi:
+          path: /analytics
+          method: post
+          cors: true
+      
+      # S3 trigger for automatic processing
+      - s3:
+          bucket: ${self:custom.analyticssBucket}
+          event: s3:ObjectCreated:*
+          rules:
+            - prefix: user-data/
+            - suffix: .json
+      
+      # Schedule for periodic analysis
+      - schedule:
+          rate: cron(0 2 * * ? *)  # Run daily at 2 AM UTC
+          enabled: true
+          input:
+            analysis_type: "engagement_metrics"
+            data_source: "s3://${self:custom.analyticssBucket}/daily-snapshots/users.json"
+    
+    # Lambda-specific configuration
+    maximumRetryAttempts: 2
+    deadLetterQueue:
+      targetArn: ${self:custom.dlqArn}
+    
+    # Environment-specific overrides
+    environment:
+      STAGE: ${self:provider.stage}
+
+# Custom variables
+custom:
+  analyticssBucket: ecommerce-analytics-${self:provider.stage}
+  resultsTable: user-analytics-results-${self:provider.stage}
+  snsTopicArn: arn:aws:sns:${self:provider.region}:${aws:accountId}:user-analytics-alerts-${self:provider.stage}
+  dlqArn: arn:aws:sqs:${self:provider.region}:${aws:accountId}:user-analytics-dlq-${self:provider.stage}
+  
+  # Python requirements plugin
+  pythonRequirements:
+    dockerizePip: true
+    layer: true
+    
+  # Alerts configuration
+  alerts:
+    stages:
+      - production
+      - staging
+    topics:
+      alarm: ${self:custom.snsTopicArn}
+    alarms:
+      - functionErrors
+      - functionThrottles
+      - functionDuration:
+          threshold: 60000  # 1 minute
+      - functionInvocations:
+          threshold: 1000
+          period: 3600  # 1 hour
+
+# Resources (Infrastructure as Code)
+resources:
+  Resources:
+    # S3 Bucket for analytics data
+    AnalyticsBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:custom.analyticssBucket}
+        VersioningConfiguration:
+          Status: Enabled
+        LifecycleConfiguration:
+          Rules:
+            - Id: DeleteOldData
+              Status: Enabled
+              ExpirationInDays: 365
+              NoncurrentVersionExpirationInDays: 30
+        PublicAccessBlockConfiguration:
+          BlockPublicAcls: true
+          BlockPublicPolicy: true
+          IgnorePublicAcls: true
+          RestrictPublicBuckets: true
+        
+    # DynamoDB Table for results
+    ResultsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.resultsTable}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: analysis_type
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: AnalysisTypeIndex
+            KeySchema:
+              - AttributeName: analysis_type
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+        TimeToLiveSpecification:
+          AttributeName: ttl
+          Enabled: true
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+        
+    # SNS Topic for alerts
+    AlertsTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: user-analytics-alerts-${self:provider.stage}
+        DisplayName: User Analytics Alerts
+        
+    # Dead Letter Queue
+    DeadLetterQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: user-analytics-dlq-${self:provider.stage}
+        MessageRetentionPeriod: 1209600  # 14 days
+        
+    # CloudWatch Log Group with retention
+    LogGroup:
+      Type: AWS::Logs::LogGroup
+      Properties:
+        LogGroupName: /aws/lambda/${self:service}-${self:provider.stage}-userAnalytics
+        RetentionInDays: 30
+
+# Plugins
+plugins:
+  - serverless-python-requirements
+  - serverless-plugin-tracing
+  - serverless-plugin-aws-alerts
+
+# Package configuration
+package:
+  patterns:
+    - '!node_modules/**'
+    - '!.git/**'
+    - '!.pytest_cache/**'
+    - '!tests/**'
+    - '!*.md'
+    - '!.env*'

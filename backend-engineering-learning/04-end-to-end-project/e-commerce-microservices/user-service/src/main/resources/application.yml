@@ -1,0 +1,303 @@
+# User Service Configuration
+# This configuration demonstrates production-ready Spring Boot settings
+# with comprehensive observability, security, and performance optimizations
+
+server:
+  port: 8080
+  servlet:
+    context-path: /user-service
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+  http2:
+    enabled: true
+
+spring:
+  application:
+    name: user-service
+    
+  # Database Configuration - PostgreSQL
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ecommerce_users
+    username: ${DB_USERNAME:user_service}
+    password: ${DB_PASSWORD:password}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      # Connection Pool Configuration for High Performance
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      connection-timeout: 30000
+      max-lifetime: 1800000
+      leak-detection-threshold: 60000
+      pool-name: UserServiceHikariCP
+      connection-test-query: SELECT 1
+      
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: validate  # Use Flyway for migrations in production
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        show_sql: false
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+        jdbc:
+          batch_versioned_data: true
+    show-sql: false
+    
+  # Redis Configuration for Caching
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    database: 0
+    timeout: 2000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+        max-wait: -1ms
+        
+  # Cache Configuration
+  cache:
+    type: redis
+    redis:
+      time-to-live: 600000  # 10 minutes
+      cache-null-values: false
+      
+  # Jackson Configuration for JSON Processing
+  jackson:
+    time-zone: UTC
+    date-format: yyyy-MM-dd'T'HH:mm:ss.SSS'Z'
+    serialization:
+      write-dates-as-timestamps: false
+      fail-on-empty-beans: false
+    deserialization:
+      fail-on-unknown-properties: false
+      accept-single-value-as-array: true
+      
+  # Security Configuration
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${JWT_ISSUER_URI:http://localhost:8080/auth/realms/ecommerce}
+
+# Eureka Service Discovery Configuration
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+    register-with-eureka: true
+    fetch-registry: true
+    registry-fetch-interval-seconds: 30
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 30
+    lease-expiration-duration-in-seconds: 90
+    hostname: ${HOSTNAME:localhost}
+    
+# Management and Monitoring Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,env,configprops
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+      environment: ${ENVIRONMENT:development}
+  health:
+    redis:
+      enabled: true
+    db:
+      enabled: true
+      
+# Application-Specific Configuration
+app:
+  security:
+    # Password Policy Configuration
+    password:
+      min-length: 8
+      require-uppercase: true
+      require-lowercase: true
+      require-digits: true
+      require-special-chars: true
+      
+    # Account Security Configuration
+    max-failed-attempts: 5
+    lockout-duration-minutes: 30
+    password-expiry-days: 90
+    session-timeout-minutes: 60
+    
+    # JWT Configuration
+    jwt:
+      secret: ${JWT_SECRET:mySecretKey}
+      expiration-ms: 86400000  # 24 hours
+      refresh-expiration-ms: 604800000  # 7 days
+      
+  # Email Configuration
+  email:
+    enabled: ${EMAIL_ENABLED:false}
+    provider: ${EMAIL_PROVIDER:sendgrid}
+    from-address: ${EMAIL_FROM:noreply@ecommerce.com}
+    verification-url: ${EMAIL_VERIFICATION_URL:http://localhost:3000/verify-email}
+    
+  # Event Publishing Configuration
+  events:
+    enabled: ${EVENTS_ENABLED:true}
+    async: true
+    
+  # API Configuration
+  api:
+    version: v1
+    rate-limit:
+      enabled: true
+      requests-per-minute: 100
+      
+# Logging Configuration
+logging:
+  level:
+    com.ecommerce.userservice: DEBUG
+    org.springframework.security: INFO
+    org.springframework.web: INFO
+    org.hibernate.SQL: INFO
+    org.hibernate.type.descriptor.sql.BasicBinder: INFO
+    org.springframework.cache: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%logger{36}] - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%logger{36}] - %msg%n"
+  file:
+    name: logs/user-service.log
+    max-size: 100MB
+    max-history: 30
+
+---
+# Development Profile
+spring:
+  profiles: development
+  
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ecommerce_users_dev
+    
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    
+  redis:
+    host: localhost
+    port: 6379
+    
+app:
+  security:
+    max-failed-attempts: 3
+    lockout-duration-minutes: 5
+    
+logging:
+  level:
+    com.ecommerce.userservice: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.security: DEBUG
+
+---
+# Test Profile
+spring:
+  profiles: test
+  
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+    
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+    
+  redis:
+    host: localhost
+    port: 6379
+    
+  cache:
+    type: simple  # Use simple cache for tests
+    
+app:
+  security:
+    max-failed-attempts: 2
+    lockout-duration-minutes: 1
+    
+  email:
+    enabled: false
+    
+  events:
+    enabled: false
+
+---
+# Production Profile
+spring:
+  profiles: production
+  
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 50
+      minimum-idle: 10
+      
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    
+  redis:
+    host: ${REDIS_HOST}
+    port: ${REDIS_PORT}
+    password: ${REDIS_PASSWORD}
+    ssl: true
+    
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+        
+app:
+  security:
+    max-failed-attempts: 5
+    lockout-duration-minutes: 30
+    
+  email:
+    enabled: true
+    
+  events:
+    enabled: true
+    
+logging:
+  level:
+    com.ecommerce.userservice: INFO
+    org.springframework.security: WARN
+    org.springframework.web: WARN
+  file:
+    name: /var/log/user-service/application.log

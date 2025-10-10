@@ -1,0 +1,34 @@
+# Python Lambda Dependencies for User Analytics Processing
+# 
+# These dependencies are chosen for their performance and compatibility
+# with the AWS Lambda environment
+
+# Data Processing and Analysis
+pandas==2.1.3              # Data manipulation and analysis
+numpy==1.24.3               # Numerical computing
+scipy==1.11.4               # Scientific computing
+
+# AWS SDK
+boto3==1.34.0               # AWS SDK for Python
+botocore==1.34.0            # AWS SDK core functionality
+
+# Date/Time Handling
+python-dateutil==2.8.2     # Extensions to the standard Python datetime module
+
+# JSON Processing (enhanced)
+orjson==3.9.10              # Fast JSON processing (optional, falls back to json)
+
+# Logging and Monitoring
+aws-lambda-powertools==2.25.0  # AWS Lambda utilities for logging, tracing, metrics
+
+# Statistical Analysis
+scikit-learn==1.3.2         # Machine learning library (for anomaly detection)
+
+# Data Validation
+pydantic==2.5.0             # Data validation using Python type annotations
+
+# Environment Variable Management
+python-decouple==3.8        # Separate settings from code
+
+# Timezone Handling
+pytz==2023.3                # World timezone definitions

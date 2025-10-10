@@ -1,0 +1,22 @@
+# Python Lambda Dependencies for Fraud Detection
+# Optimized for performance and security analysis
+
+# Core dependencies
+boto3==1.34.0               # AWS SDK
+pandas==2.1.3               # Data analysis
+numpy==1.24.3                # Numerical computing
+scikit-learn==1.3.2         # Machine learning for advanced detection
+
+# Security and cryptography
+cryptography==41.0.7        # Cryptographic operations
+hashlib                     # Built-in hashing (no install needed)
+
+# Network analysis
+ipaddress                   # Built-in IP address handling
+requests==2.31.0            # HTTP requests for external APIs
+
+# AWS Lambda utilities
+aws-lambda-powertools==2.25.0  # Enhanced logging and tracing
+
+# Data validation
+pydantic==2.5.0             # Data validation

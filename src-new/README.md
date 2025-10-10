@@ -1,13 +1,17 @@
-# Java Learning Repository - Comprehensive Guide
+# Backend Engineering Learning Repository - Comprehensive Guide
 
 ## 🎯 **Repository Overview**
 
-This repository is a comprehensive learning platform for Java development, covering:
-- **Design Patterns** (Creational, Structural, Behavioral)
-- **SOLID Principles**
-- **Low Level Design (LLD) Problems**
-- **Multithreading & Concurrency**
-- **Java Fundamentals**
+This repository is a comprehensive learning platform for **Backend Engineering**, covering:
+- **Microservices Architecture** with Spring Boot
+- **Database Design & Selection** (SQL, NoSQL, Caching)
+- **Data Processing** with Python Lambda Functions
+- **Design Patterns** for Backend Systems
+- **System Design & Scalability**
+- **DevOps & Deployment** Best Practices
+- **API Design** (REST, GraphQL, gRPC)
+- **Security & Authentication**
+- **Monitoring & Observability**
 
 ## 📚 **Learning Paths**
 
