@@ -1,0 +1,5 @@
+Monitor:
+Monitor can be any object use for waiting and signaling to avoid busy waiting
+
+
+If the current thread is not the owner of this objects Monitor throws IllegaMonitorException;

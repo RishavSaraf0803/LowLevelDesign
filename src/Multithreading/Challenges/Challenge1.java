@@ -1,5 +1,6 @@
 package Multithreading.Challenges;
 import java.util.*;
+
 public class Challenge1 {
      static volatile int curr = 1;
     public static void main(String[] args) throws InterruptedException {
