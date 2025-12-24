@@ -1,0 +1,205 @@
+════════════════════════════════════════════════════════════════
+  DISTRIBUTED RATE LIMITER - IMPLEMENTATION STRUCTURE
+════════════════════════════════════════════════════════════════
+
+📂 DistributedRateLimiter/
+│
+├── 📄 README.md                       (12 KB) - Core concepts & theory
+├── 📄 IMPLEMENTATION_GUIDE.md         (16 KB) - Step-by-step code guide
+├── 📄 REDIS_LUA_SCRIPTS.md            (14 KB) - Production Lua scripts
+├── 📄 QUICK_START.md                  (10 KB) - 30-min quick start
+├── 📄 FOLDER_STRUCTURE.txt            (This file)
+│
+├── 📁 data/                           (Data Models)
+│   ├── RateLimitResult.java          (Response: allowed, remaining, resetTime)
+│   ├── RateLimiterConfig.java        (Config: limit, window, strategy)
+│   └── RateLimitStrategyType.java    (Enum: strategies)
+│
+├── 📁 core/                           (Main Implementation)
+│   ├── RateLimiter.java              (Interface: isAllowed, reset, getUsage)
+│   └── DistributedRateLimiter.java   (Main class: delegates to strategies)
+│
+├── 📁 strategy/                       (Rate Limiting Strategies)
+│   ├── RateLimiterStrategy.java      (Interface: checkLimit, reset, getCount)
+│   ├── SlidingWindowCounterStrategy.java ⭐ (Recommended - best balance)
+│   ├── FixedWindowStrategy.java      (Simplest - has boundary issue)
+│   ├── SlidingWindowLogStrategy.java (Most accurate - memory intensive)
+│   └── TokenBucketStrategy.java      (Burst handling - complex)
+│
+├── 📁 redis/                          (Redis Integration)
+│   ├── RedisClient.java              (Interface: evalScript, get, set, etc.)
+│   ├── RedisClientImpl.java          (Real Redis implementation)
+│   └── MockRedisClient.java          (For testing without Redis)
+│
+└── 📁 tester/                         (Test Cases)
+    ├── BasicTest.java                (Basic allow/deny flow)
+    ├── ConcurrencyTest.java          (Multi-threaded tests)
+    ├── StrategyComparisonTest.java   (Compare different strategies)
+    └── LoadTest.java                 (Performance & load testing)
+
+════════════════════════════════════════════════════════════════
+  DOCUMENTATION GUIDE
+════════════════════════════════════════════════════════════════
+
+📖 READ FIRST (30 minutes):
+   └─ QUICK_START.md → Get oriented quickly
+
+📖 UNDERSTAND CONCEPTS (1-2 hours):
+   └─ README.md → Problem, algorithms, tradeoffs
+
+📖 IMPLEMENTATION (2-4 hours):
+   └─ IMPLEMENTATION_GUIDE.md → Class structure, code examples
+
+📖 REDIS SCRIPTS (1-2 hours):
+   └─ REDIS_LUA_SCRIPTS.md → Production-ready Lua scripts
+
+════════════════════════════════════════════════════════════════
+  IMPLEMENTATION PHASES
+════════════════════════════════════════════════════════════════
+
+Phase 1: Data Models & Interfaces (1 hour)
+   ├─ Create RateLimitResult
+   ├─ Create RateLimiterConfig
+   ├─ Create RateLimitStrategyType enum
+   ├─ Define RateLimiter interface
+   ├─ Define RateLimiterStrategy interface
+   └─ Define RedisClient interface
+
+Phase 2: Mock Redis (1 hour)
+   └─ Implement MockRedisClient for testing
+
+Phase 3: Strategy Implementation (2-3 hours)
+   ├─ Implement SlidingWindowCounterStrategy
+   ├─ Write Lua script
+   └─ Test with mock Redis
+
+Phase 4: Main Class (1 hour)
+   └─ Implement DistributedRateLimiter
+
+Phase 5: Testing (2-3 hours)
+   ├─ Unit tests
+   ├─ Integration tests
+   └─ Concurrent tests
+
+Phase 6: Additional Strategies (Optional, 3+ hours)
+   ├─ Implement FixedWindowStrategy
+   ├─ Implement TokenBucketStrategy
+   └─ Implement SlidingWindowLogStrategy
+
+Phase 7: Production Ready (Optional, 2+ hours)
+   ├─ Real Redis client with connection pooling
+   ├─ Error handling & circuit breaker
+   ├─ Monitoring & metrics
+   └─ Load testing
+
+════════════════════════════════════════════════════════════════
+  KEY CONCEPTS TO MASTER
+════════════════════════════════════════════════════════════════
+
+✅ Distributed Systems
+   • Why local counters don't work
+   • Race conditions in distributed env
+   • Clock synchronization issues
+
+✅ Redis & Lua Scripts
+   • Why Lua scripts are atomic
+   • How to write efficient Lua
+   • EVALSHA vs EVAL
+
+✅ Rate Limiting Algorithms
+   • Fixed Window (simple but flawed)
+   • Sliding Window Counter (recommended)
+   • Token Bucket (for bursts)
+   • Sliding Window Log (most accurate)
+
+✅ System Design
+   • Fail open vs fail closed
+   • Connection pooling
+   • Sharding strategies
+   • Monitoring & alerting
+
+════════════════════════════════════════════════════════════════
+  INTERVIEW FOCUS AREAS
+════════════════════════════════════════════════════════════════
+
+⭐⭐⭐ Critical (Must Know):
+   • Race conditions and atomicity
+   • Sliding window counter algorithm
+   • Why use Redis Lua scripts
+   • Time/space complexity
+   • Handling Redis failures
+
+⭐⭐ Important (Should Know):
+   • Differences between strategies
+   • Fixed window boundary problem
+   • Token bucket for burst traffic
+   • Multi-tier rate limiting
+   • Scalability considerations
+
+⭐ Advanced (Nice to Have):
+   • Redis cluster sharding
+   • Connection pooling optimization
+   • Distributed consistency models
+   • Performance tuning
+   • Monitoring in production
+
+════════════════════════════════════════════════════════════════
+  TESTING CHECKLIST
+════════════════════════════════════════════════════════════════
+
+Unit Tests:
+   ☐ Test RateLimitResult creation
+   ☐ Test config factory methods
+   ☐ Test strategy selection
+   ☐ Test key building logic
+
+Integration Tests:
+   ☐ Basic allow/deny flow
+   ☐ Counter increments correctly
+   ☐ Window transitions work
+   ☐ TTL expiration works
+   ☐ Reset functionality
+
+Concurrency Tests:
+   ☐ Multiple threads, same user
+   ☐ Multiple threads, different users
+   ☐ Verify no over-limit
+   ☐ Race condition scenarios
+
+Edge Cases:
+   ☐ Exactly at limit
+   ☐ Redis connection failure
+   ☐ Invalid inputs
+   ☐ Clock skew
+   ☐ Boundary conditions
+
+════════════════════════════════════════════════════════════════
+  STRATEGY COMPARISON
+════════════════════════════════════════════════════════════════
+
+┌──────────────────┬──────────┬────────┬────────────┬────────┐
+│ Strategy         │ Accuracy │ Memory │ Complexity │ Bursts │
+├──────────────────┼──────────┼────────┼────────────┼────────┤
+│ Fixed Window     │   Low    │  Low   │    Low     │  Yes   │
+│ Sliding Counter  │  Medium  │  Low   │   Medium   │ Partial│ ⭐
+│ Sliding Log      │   High   │  High  │   Medium   │   No   │
+│ Token Bucket     │  Medium  │  Low   │    High    │  Yes   │
+│ Leaky Bucket     │  Medium  │  Low   │    High    │   No   │
+└──────────────────┴──────────┴────────┴────────────┴────────┘
+
+⭐ = Recommended for most use cases
+
+════════════════════════════════════════════════════════════════
+  NEXT STEPS
+════════════════════════════════════════════════════════════════
+
+1. Read QUICK_START.md (30 min)
+2. Understand concepts from README.md (1-2 hours)
+3. Follow IMPLEMENTATION_GUIDE.md to code (2-4 hours)
+4. Use REDIS_LUA_SCRIPTS.md for Lua scripts (1-2 hours)
+5. Test thoroughly (2-3 hours)
+6. Practice explaining the design (1 hour)
+
+Total Time: 8-14 hours for complete implementation
+
+════════════════════════════════════════════════════════════════
